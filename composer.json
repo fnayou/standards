@@ -1,0 +1,36 @@
+{
+    "name": "fnayou/standards",
+    "type": "library",
+    "description": "PHP Code Sniffer configurator.",
+    "keywords": [
+        "php",
+        "code",
+        "sniffer",
+        "phpcs",
+        "configurator",
+        "symfony",
+        "laravel"
+    ],
+    "homepage": "https://github.com/fnayou/standards",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Aymen FNAYOU",
+            "email": "fnayou.aymen@gmail.com",
+            "homepage": "http://aymen-fnayou.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "squizlabs/php_codesniffer": "~2.3"
+    },
+    "suggest": {
+        "escapestudios/symfony2-coding-standard": "Symfony2 PHP CodeSniffer Coding Standard",
+        "pragmarx/laravelcs": "Laravel CodeSniffer Coding Standard",
+        "yiisoft/yii2-coding-standards": "Yii CodeSniffer Coding Standard"
+    },
+    "bin": ["standards"],
+    "config": {
+        "sort-packages": true
+    }
+}
