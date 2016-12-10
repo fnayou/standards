@@ -5,6 +5,15 @@ Clear and easy to use **PHP Code Sniffer** configurator.
 
 Work with *symfony*, *laravel*, *yii* and any PHP based projects.
 
+- [Installation](#installation)
+- [Usage](#usage)
+    - [Using .standards configuration file](#using-standards-configuration-file)
+    - [Running command with arguments](#running-command-with-arguments)
+    - [With Symfony](#with-symfony)
+    - [With Laravel](#with-laravel)
+    - [With Yii](#with-yii)
+    - [Composer script](#composer-script)
+
 ## Installation
 
 via `composer` and for dev :
@@ -56,8 +65,22 @@ src/
 # ignored files and directories (optional)
 !tests
 ```
+now all you have to do is to run command `bin\standards`.
 
-now all you have to do is to run command `bin\standards`
+note :
+
+* all **ignored files or directory** should be prefixed with `!` like `!test/` or `!test.php`
+* all **ignored and allowed** files/directories should be written one by line like
+
+```
+# allowed files/directories
+src/
+file.php
+
+# ignored files/directories
+!tests/
+!test.php
+```
 
 ### Running command with arguments
 
@@ -137,6 +160,22 @@ src/
 ```
 
 now, all you have to do is to run command `bin\standards`.
+
+### Composer script
+
+you can also add a **composer script** to run command
+
+```json
+"scripts": {
+    "stdr": "bin/standards"
+},
+```
+
+next all you have to do is to run script (can be useful with `capistrano` or/and `jenkins`)
+
+```sh
+composer stdr
+```
 
 ## Credits
 
