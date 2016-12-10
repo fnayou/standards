@@ -9,7 +9,8 @@
         "phpcs",
         "configurator",
         "symfony",
-        "laravel"
+        "laravel",
+        "yii"
     ],
     "homepage": "https://github.com/fnayou/standards",
     "license": "MIT",
