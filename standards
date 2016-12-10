@@ -1,0 +1,234 @@
+#!/usr/bin/env bash
+
+## parameters
+file=".standards"
+params=""
+options=""
+standard=""
+standardPath=""
+command="phpcs"
+commandPath=""
+composerPath="vendor/squizlabs/php_codesniffer/scripts/"
+filesAllowed=""
+filesIgnored=""
+ignored=0
+allowed=0
+verbose=0
+fix=0
+
+## process allowed files and directories
+function allow
+{
+    if [ -e "$1" ]
+    then
+        if [ -z "$filesAllowed" ]
+        then
+            filesAllowed="$1"
+        else
+            filesAllowed="$filesAllowed $1"
+        fi
+    fi
+}
+
+## process ignored files and directories
+function ignore
+{
+    if [ -z "$filesIgnored" ]
+    then
+        filesIgnored="$1"
+    else
+        filesIgnored="$filesIgnored,$1"
+    fi
+}
+
+## the output :
+##    $1 = status (info|debug|warning|fail|success)
+##    $2 = message
+##    $3 = color for status
+##    $4 = color for message
+function output
+{
+    OUTPUT="%s%s$1%s : %s$2%s"
+
+    if [ -t 1 ] && [ $- != "*i*" ] && [ -n "$TERM" ] && which tput >/dev/null
+    then
+        OUTPUT=$(printf "$OUTPUT" "$(tput bold)" "$(tput setaf $3)" "$(tput sgr0)" "$(tput setaf $4)" "$(tput sgr0)" )
+    else
+        OUTPUT=$(printf "$OUTPUT" "" "" "" "" "" )
+    fi
+
+    echo "$OUTPUT"
+}
+
+## ouput success in green
+function success
+{
+    output "(success)" "$1" 2 7
+    exit 0
+}
+
+## ouput fail in red
+function fail
+{
+    output "(fail)" "$1" 1 7
+    exit 1
+}
+
+## ouput warning in yellow
+function warning
+{
+    output "(warning)" "$1" 3 7
+    exit 0
+}
+
+## ouput info in blue
+function info
+{
+    output "(info)" "$1" 4 7
+}
+
+## ouput debug in cyan
+function debug
+{
+    if [ "$verbose" -eq 1 ]
+    then
+        output "(debug)" "$1" 6 7
+    fi
+}
+
+## resolve options (parameter or option or files/directories)
+while [ $# -ne 0 ]
+do
+    CUR_PARAM="$1"
+
+    # parameters
+    if [ "${CUR_PARAM:0:2}" =  "--" ]
+    then
+        if [ "${CUR_PARAM:2:9}" =  "standard=" ]
+        then
+            standard="${CUR_PARAM:11}"
+        elif [ "${CUR_PARAM:2:7}" =  "ignore=" ]
+        then
+            ignore "${CUR_PARAM:9}"
+            ignored=1
+        elif [ "${CUR_PARAM:2:14}" = "standard-path=" ]
+        then
+            standardPath="${CUR_PARAM:16}"
+        elif [ "${CUR_PARAM:2:5}" = "fix" ]
+        then
+            fix=1
+        else
+            params="$params $CUR_PARAM"
+        fi
+    # options
+    elif [ "${CUR_PARAM:0:1}" = "-" ]
+    then
+        case "${CUR_PARAM:1:1}" in
+            v)
+                verbose=1
+            ;;
+            f)
+                fix=1
+            ;;
+        esac
+
+        options="$options ${CUR_PARAM}"
+    # files / directories
+    else
+        allow "$CUR_PARAM"
+        allowed=1
+    fi
+
+    shift
+done
+
+# resolve command path
+if [ -d "$composerPath" ]
+then
+  debug "command path used is '$composerPath'"
+  commandPath="$composerPath"
+fi
+
+if [ $fix  -eq 1 ]
+then
+    info "'fix' activated, use 'phpcbf' command instead of 'phpcs'"
+    command="phpcbf"
+fi
+
+# resolve files to scan
+if [ -e "$file" ]
+then
+    output=$( grep "^[^\#]" $file )
+
+    for ligne in $output
+    do
+        if [ "${ligne:0:8}" = "command=" ]
+        then
+            command="${ligne:8}"
+        elif [ -z "$standardPath" ] && [ "${ligne:0:14}" = "standard-path=" ]
+        then
+            standardPath="${ligne:14}"
+        elif [ -z "$standard" ] && [ "${ligne:0:9}" = "standard=" ]
+        then
+            standard="${ligne:9}"
+        elif  [ "$verbose" -eq 0 ] && [ "${ligne:0:8}" = "verbose=" ] && [ "${ligne:8}" = "true" ]
+        then
+            verbose=1
+        elif [ "$ignored" -eq 0 ] && [ "${ligne:0:1}" = "!" ]
+        then
+            ignore "${ligne:1}"
+        elif [ "$allowed" -eq 0 ] && [ -n "$ligne" ]
+        then
+            allow "$ligne"
+        fi
+    done
+else
+    warning "config file '.standards' not found"
+fi
+
+info "starting standards check"
+
+# prepare command
+if [ -n "$filesIgnored" ]
+then
+    info "ignore files '$filesIgnored'"
+    filesIgnored="--ignore=$filesIgnored"
+fi
+
+if [ -n "$standardPath" ]
+then
+    debug "change standard path to '$standardPath'"
+    $commandPath$command --config-set installed_paths $standardPath
+fi
+
+if [ -n "$standard" ]
+then
+    debug "standard used is '$standard'"
+    standard="--standard=$standard"
+else
+    fail "no coding standard definition provided"
+fi
+
+# run command
+
+if [ -n "$filesAllowed" ]
+then
+    info "files allowed : '$filesAllowed'"
+
+    $commandPath$command $filesAllowed $filesIgnored $standard $options $params
+
+    if [ $? -ne 0 ]
+    then
+        fail "some files do not match with '${standard:11}' requirements"
+    fi
+else
+    warning "there was no file to test"
+fi
+
+success "all files match with \"${standard:11}\" requirements"
+
+if [ -n "$standardPath" ]
+then
+    debug "reset standard path"
+    $commandPath$command --config-delete installed_paths
+fi
